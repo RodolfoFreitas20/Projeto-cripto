@@ -41,6 +41,6 @@ app.get('/api/coins', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(dir, 'public'), { maxAge: '1h' }));
+app.use(express.static(dir, { maxAge: '1h', index: 'index.html' }));
 
 app.listen(PORT, () => console.log(`Bolhas BR rodando na porta ${PORT}`));
