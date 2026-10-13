@@ -1,0 +1,60 @@
+[
+  {
+    "id": "brz",
+    "tag": "stablecoin em reais"
+  },
+  {
+    "id": "brla-digital-brla",
+    "tag": "stablecoin em reais"
+  },
+  {
+    "id": "sport-club-corinthians-fan-token",
+    "tag": "fan token"
+  },
+  {
+    "id": "santos-fc-fan-token",
+    "tag": "fan token"
+  },
+  {
+    "id": "sao-paulo-fc-fan-token",
+    "tag": "fan token"
+  },
+  {
+    "id": "atletico-mineiro-fan-token",
+    "tag": "fan token"
+  },
+  {
+    "id": "flamengo-fan-token",
+    "tag": "fan token"
+  },
+  {
+    "id": "vellora",
+    "tag": "carteira"
+  },
+  {
+    "id": "verified-emeralds",
+    "tag": "RWA (esmeraldas)"
+  },
+  {
+    "network": "bsc",
+    "address": "0xe08b716fffcc0410da0392500c6a88fe0accd819",
+    "symbol": "VKX",
+    "tag": "on-chain (BSC)"
+  },
+  {
+    "id": "crown-brlv",
+    "tag": "stablecoin em reais"
+  },
+  {
+    "network": "bsc",
+    "address": "0xe1f7DD2812e91D1f92a8Fa1115f3ACA4aff82Fe5",
+    "tag": "on-chain (BSC)",
+    "symbol": "DCAR"
+  },
+  {
+    "network": "bsc",
+    "address": "0x03457450573FfCae9a3cD5cA41597dF3787A570D",
+    "tag": "on-chain (BSC)",
+    "symbol": "DBK"
+  }
+]

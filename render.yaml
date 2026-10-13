@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: bolhas-br
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: COINGECKO_API_KEY
+        sync: false # o Render pergunta o valor ao criar; opcional
