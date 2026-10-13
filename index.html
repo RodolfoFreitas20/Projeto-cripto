@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bolhas BR — criptomoedas brasileiras em bolhas</title>
+  <meta name="description" content="Veja o desempenho das criptomoedas nativas do Brasil em bolhas: quanto maior a bolha, maior a variação no período.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Bolhas BR</h1>
+      <p>Criptomoedas brasileiras. Cada bolha é uma moeda; o tamanho mostra o quanto ela se moveu.</p>
+    </div>
+    <div class="controls">
+      <div class="group" role="group" aria-label="Período">
+        <button data-period="1h" aria-pressed="false">1h</button>
+        <button data-period="24h" aria-pressed="true">24h</button>
+        <button data-period="7d" aria-pressed="false">7d</button>
+        <button data-period="30d" aria-pressed="false">30d</button>
+      </div>
+      <div class="group" role="group" aria-label="Tamanho da bolha">
+        <button data-size="change" aria-pressed="true">Variação</button>
+        <button data-size="cap" aria-pressed="false">Valor de mercado</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage-wrap">
+      <canvas id="stage" role="img" aria-label="Bolhas das criptomoedas brasileiras. A lista abaixo traz os mesmos dados em texto."></canvas>
+      <aside id="detail" class="detail" aria-live="polite" hidden></aside>
+    </section>
+    <p id="status" class="status" role="status">Carregando moedas…</p>
+
+    <section class="list">
+      <h2>Todas as moedas</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Moeda</th><th class="num">Preço</th><th class="num" id="th-change">Variação 24h</th><th class="num">Valor de mercado</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Dados do CoinGecko, em reais. Informativo; não é recomendação de investimento.</footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
