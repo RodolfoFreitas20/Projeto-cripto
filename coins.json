@@ -56,5 +56,13 @@
     "address": "0x03457450573FfCae9a3cD5cA41597dF3787A570D",
     "tag": "on-chain (BSC)",
     "symbol": "DBK"
+  },
+  {
+    "id": "rayls",
+    "tag": "RWA"
+  },
+  {
+    "id": "hathor",
+    "tag": "camada 1"
   }
 ]
