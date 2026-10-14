@@ -1,94 +1,12 @@
-const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d');
-const detail = document.getElementById('detail');
-const statusEl = document.getElementById('status');
-const rowsEl = document.getElementById('rows');
-
-const state = { period: '24h', sizeBy: 'change', coins: [], selected: null };
-const bubbles = new Map();
-const logos = new Map();
+/* ---------- utilidades ---------- */
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let W = 0, H = 0, last = performance.now();
-
-const brl = (n) => n == null ? '—' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: n < 1 ? 4 : 2 });
+const logos = new Map();
+const brl = (n) => n == null ? '—' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: Math.abs(n) < 1 ? 4 : 2 });
 const pct = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${n.toFixed(2).replace('.', ',')}%`;
 const big = (n) => n == null ? '—' : new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 const cls = (n) => (n ?? 0) >= 0 ? 'up' : 'down';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const safeImg = (u) => /^https:\/\/(coin-images|assets)\.(coingecko|geckoterminal)\.com\//.test(u || '') ? u : '';
-
-function resize() {
-  const r = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  W = r.width; H = r.height;
-  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  retarget();
-}
-new ResizeObserver(resize).observe(canvas);
-
-function weight(c) {
-  if (state.sizeBy === 'cap') return Math.sqrt(Math.sqrt(c.marketCap || 1)); // suaviza diferenças enormes
-  return Math.sqrt(Math.max(Math.abs(c.change[state.period] ?? 0), 0.4));
-}
-
-function retarget() {
-  if (!W || !H) return;
-  const items = state.coins.map((c) => ({ c, w: weight(c) }));
-  const sum = items.reduce((s, i) => s + i.w * i.w, 0) || 1;
-  const k = Math.sqrt((0.38 * W * H) / (Math.PI * sum));
-  const maxR = Math.min(W, H) * 0.3;
-  const ids = new Set();
-  for (const { c, w } of items) {
-    ids.add(c.id);
-    let b = bubbles.get(c.id);
-    if (!b) {
-      b = { x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.08, vy: (Math.random() - 0.5) * 0.08, r: 8 };
-      bubbles.set(c.id, b);
-    }
-    b.coin = c;
-    b.target = Math.min(Math.max(w * k, 26), maxR);
-  }
-  for (const id of bubbles.keys()) if (!ids.has(id)) bubbles.delete(id);
-}
-
-function step(dt) {
-  const list = [...bubbles.values()];
-  for (const b of list) {
-    b.r += (b.target - b.r) * Math.min(1, dt * 0.008);
-    if (reduceMotion) continue;
-    b.vx += (W / 2 - b.x) * 0.0000025 * dt;
-    b.vy += (H / 2 - b.y) * 0.0000025 * dt;
-    b.x += b.vx * dt; b.y += b.vy * dt;
-    b.vx *= 0.999; b.vy *= 0.999;
-    if (Math.hypot(b.vx, b.vy) < 0.015) { const a = Math.random() * 6.283; b.vx += Math.cos(a) * 0.004; b.vy += Math.sin(a) * 0.004; }
-  }
-  for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const a = list[i], b = list[j];
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const d = Math.hypot(dx, dy) || 0.01, min = a.r + b.r + 2;
-      if (d >= min) continue;
-      const nx = dx / d, ny = dy / d, m1 = a.r * a.r, m2 = b.r * b.r;
-      const push = (min - d) / (m1 + m2);
-      a.x -= nx * push * m2; a.y -= ny * push * m2;
-      b.x += nx * push * m1; b.y += ny * push * m1;
-      if (reduceMotion) continue;
-      const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-      if (rv < 0) {
-        const j2 = (-1.9 * rv) / (1 / m1 + 1 / m2);
-        a.vx -= (j2 * nx) / m1; a.vy -= (j2 * ny) / m1;
-        b.vx += (j2 * nx) / m2; b.vy += (j2 * ny) / m2;
-      }
-    }
-  }
-  for (const b of list) {
-    if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); }
-    if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
-    if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy); }
-    if (b.y > H - b.r) { b.y = H - b.r; b.vy = -Math.abs(b.vy); }
-  }
-}
+const safeImg = (u) => /^https:\/\/((coin-images|assets)\.(coingecko|geckoterminal)\.com|icons\.brapi\.dev)\//.test(u || '') ? u : '';
 
 function logo(url) {
   const u = safeImg(url);
@@ -98,73 +16,159 @@ function logo(url) {
   return im.complete && im.naturalWidth ? im : null;
 }
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.textAlign = 'center';
-  for (const b of bubbles.values()) {
-    const c = b.coin, ch = c.change[state.period];
-    const rgb = (ch ?? 0) >= 0 ? '53,214,160' : '255,111,89';
-    const mag = Math.min(Math.abs(ch ?? 0) / 10, 1);
-    const g = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.1, b.x, b.y, b.r);
-    g.addColorStop(0, `rgba(${rgb},${0.28 + 0.4 * mag})`);
-    g.addColorStop(1, `rgba(${rgb},${0.14 + 0.3 * mag})`);
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
-    ctx.fillStyle = g; ctx.fill();
-    ctx.lineWidth = state.selected === c.id ? 4 : 2;
-    ctx.strokeStyle = state.selected === c.id ? '#f4c95d' : `rgba(${rgb},0.9)`; ctx.stroke();
+function bindGroup(attr, cb) {
+  const btns = document.querySelectorAll(`[data-${attr}]`);
+  btns.forEach((btn) => btn.addEventListener('click', () => {
+    btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    cb(btn.dataset[attr]);
+  }));
+}
 
-    ctx.fillStyle = '#e8f1ee';
-    if (b.r >= 34) {
-      const im = logo(c.image), s = b.r * 0.5;
-      if (im) ctx.drawImage(im, b.x - s / 2, b.y - b.r * 0.62, s, s);
-      ctx.font = `700 ${Math.max(11, b.r * 0.27)}px "Bricolage Grotesque", sans-serif`;
-      ctx.fillText(c.symbol, b.x, b.y + b.r * 0.2);
-      ctx.font = `400 ${Math.max(10, b.r * 0.2)}px "Bricolage Grotesque", sans-serif`;
-      ctx.fillText(pct(ch), b.x, b.y + b.r * 0.2 + Math.max(13, b.r * 0.24));
-    } else {
-      ctx.font = '700 10px "Bricolage Grotesque", sans-serif';
-      ctx.fillText(c.symbol.slice(0, 5), b.x, b.y + 3);
+/* ---------- motor de bolhas (usado por criptomoedas e ações) ---------- */
+// item: { id, symbol, image, change (%), cap }
+function createChart(canvas, { onSelect }) {
+  const ctx = canvas.getContext('2d');
+  const bubbles = new Map();
+  let W = 0, H = 0, items = [], sizeBy = 'change', selected = null, visible = true, last = performance.now();
+
+  const weight = (it) => sizeBy === 'cap'
+    ? Math.sqrt(Math.sqrt(it.cap || 1)) // suaviza diferenças enormes
+    : Math.sqrt(Math.max(Math.abs(it.change ?? 0), 0.4));
+
+  function retarget() {
+    if (!W || !H) return;
+    const minR = W < 520 ? 23 : 26, maxR = Math.min(W, H) * 0.3;
+    const ws = items.map(weight);
+    const sum = ws.reduce((s, w) => s + w * w, 0) || 1;
+    const k = Math.sqrt((0.38 * W * H) / (Math.PI * sum));
+    let radii = ws.map((w) => Math.min(Math.max(w * k, minR), maxR));
+    const area = radii.reduce((s, r) => s + Math.PI * r * r, 0), limit = 0.6 * W * H;
+    if (area > limit) { const f = Math.sqrt(limit / area); radii = radii.map((r) => Math.max(r * f, 16)); } // telas pequenas
+    const ids = new Set();
+    items.forEach((it, i) => {
+      ids.add(it.id);
+      let b = bubbles.get(it.id);
+      if (!b) {
+        b = { x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.08, vy: (Math.random() - 0.5) * 0.08, r: 8 };
+        bubbles.set(it.id, b);
+      }
+      b.item = it; b.target = radii[i];
+    });
+    for (const id of bubbles.keys()) if (!ids.has(id)) bubbles.delete(id);
+  }
+
+  function resize() {
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    retarget();
+  }
+  new ResizeObserver(resize).observe(canvas);
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
+
+  function step(dt) {
+    const list = [...bubbles.values()];
+    for (const b of list) {
+      b.r += (b.target - b.r) * Math.min(1, dt * 0.008);
+      if (reduceMotion) continue;
+      b.vx += (W / 2 - b.x) * 0.0000025 * dt; b.vy += (H / 2 - b.y) * 0.0000025 * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.vx *= 0.999; b.vy *= 0.999;
+      if (Math.hypot(b.vx, b.vy) < 0.015) { const a = Math.random() * 6.283; b.vx += Math.cos(a) * 0.004; b.vy += Math.sin(a) * 0.004; }
+    }
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i], b = list[j];
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01, min = a.r + b.r + 2;
+        if (d >= min) continue;
+        const nx = dx / d, ny = dy / d, m1 = a.r * a.r, m2 = b.r * b.r, push = (min - d) / (m1 + m2);
+        a.x -= nx * push * m2; a.y -= ny * push * m2; b.x += nx * push * m1; b.y += ny * push * m1;
+        if (reduceMotion) continue;
+        const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rv < 0) {
+          const j2 = (-1.9 * rv) / (1 / m1 + 1 / m2);
+          a.vx -= (j2 * nx) / m1; a.vy -= (j2 * ny) / m1; b.vx += (j2 * nx) / m2; b.vy += (j2 * ny) / m2;
+        }
+      }
+    }
+    for (const b of list) {
+      if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); }
+      if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
+      if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy); }
+      if (b.y > H - b.r) { b.y = H - b.r; b.vy = -Math.abs(b.vy); }
     }
   }
-}
 
-function frame(now) {
-  step(Math.min(now - last, 32));
-  last = now;
-  draw();
+  const font = (w, px) => `${w} ${px}px "Bricolage Grotesque", sans-serif`;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    for (const b of bubbles.values()) {
+      const it = b.item, ch = it.change, isSel = selected === it.id;
+      const rgb = (ch ?? 0) >= 0 ? '53,214,160' : '255,111,89', mag = Math.min(Math.abs(ch ?? 0) / 10, 1);
+      const g = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.1, b.x, b.y, b.r);
+      g.addColorStop(0, `rgba(${rgb},${0.28 + 0.4 * mag})`); g.addColorStop(1, `rgba(${rgb},${0.14 + 0.3 * mag})`);
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.lineWidth = isSel ? 4 : 2; ctx.strokeStyle = isSel ? '#f4c95d' : `rgba(${rgb},0.9)`; ctx.stroke();
+
+      ctx.fillStyle = '#e8f1ee';
+      if (b.r >= 34) {
+        const im = logo(it.image), s = b.r * 0.5;
+        if (im) ctx.drawImage(im, b.x - s / 2, b.y - b.r * 0.62, s, s);
+        let px = Math.max(11, b.r * 0.27);
+        ctx.font = font(700, px);
+        while (ctx.measureText(it.symbol).width > b.r * 1.75 && px > 8) { px -= 1; ctx.font = font(700, px); }
+        ctx.fillText(it.symbol, b.x, b.y + b.r * 0.2);
+        ctx.font = font(400, Math.max(10, b.r * 0.2));
+        ctx.fillText(pct(ch), b.x, b.y + b.r * 0.2 + Math.max(13, b.r * 0.24));
+      } else {
+        let px = 10;
+        ctx.font = font(700, px);
+        while (ctx.measureText(it.symbol).width > b.r * 1.7 && px > 7) { px -= 0.5; ctx.font = font(700, px); }
+        ctx.fillText(it.symbol, b.x, b.y + px * 0.35);
+      }
+    }
+  }
+
+  function frame(now) {
+    const dt = Math.min(now - last, 32); last = now;
+    if (visible) { step(dt); draw(); }
+    requestAnimationFrame(frame);
+  }
+
+  function pick(e) {
+    const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    return [...bubbles.values()].reverse().find((b) => Math.hypot(b.x - x, b.y - y) <= b.r)?.item.id ?? null;
+  }
+  canvas.addEventListener('pointermove', (e) => { canvas.style.cursor = pick(e) ? 'pointer' : 'default'; });
+  canvas.addEventListener('click', (e) => onSelect(pick(e)));
+
+  resize();
   requestAnimationFrame(frame);
+  return {
+    update(list, opts = {}) { items = list; if (opts.sizeBy) sizeBy = opts.sizeBy; retarget(); },
+    setSelected(id) { selected = id; },
+  };
 }
 
-function pick(e) {
-  const r = canvas.getBoundingClientRect();
-  const x = e.clientX - r.left, y = e.clientY - r.top;
-  return [...bubbles.values()].reverse().find((b) => Math.hypot(b.x - x, b.y - y) <= b.r)?.coin ?? null;
-}
-canvas.addEventListener('pointermove', (e) => { canvas.style.cursor = pick(e) ? 'pointer' : 'default'; });
-canvas.addEventListener('click', (e) => select(pick(e)?.id ?? null));
+/* ---------- criptomoedas ---------- */
+const crypto = { period: '24h', sizeBy: 'change', coins: [], selected: null };
+const cryptoDetail = document.getElementById('detail');
+const statusEl = document.getElementById('status');
+const rowsEl = document.getElementById('rows');
+const cryptoChart = createChart(document.getElementById('stage'), { onSelect: (id) => selectCoin(id) });
 
-function select(id) {
-  state.selected = id;
-  const c = state.coins.find((x) => x.id === id);
-  if (!c) { detail.hidden = true; return; }
-  const img = safeImg(c.image);
-  detail.innerHTML = `
-    <button class="close" aria-label="Fechar detalhes">×</button>
-    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(c.name)}</h3><small>${esc(c.symbol)}${c.tag ? ' · ' + esc(c.tag) : ''}</small></div></header>
-    <div class="price">${brl(c.price)}</div>
-    <dl>
-      ${['1h', '24h', '7d', '30d'].map((p) => `<dt>${p}</dt><dd class="${cls(c.change[p])}">${pct(c.change[p])}</dd>`).join('')}
-      <dt>Valor de mercado</dt><dd>R$ ${big(c.marketCap)}</dd>
-      <dt>Volume 24h</dt><dd>R$ ${big(c.volume)}</dd>
-    </dl>`;
-  detail.hidden = false;
-  detail.querySelector('.close').addEventListener('click', () => select(null));
-}
-
-function renderTable() {
-  const p = state.period;
+function refreshCrypto() {
+  cryptoChart.update(
+    crypto.coins.map((c) => ({ id: c.id, symbol: c.symbol, image: c.image, change: c.change[crypto.period], cap: c.marketCap })),
+    { sizeBy: crypto.sizeBy },
+  );
+  const p = crypto.period;
   document.getElementById('th-change').textContent = `Variação ${p}`;
-  const sorted = [...state.coins].sort((a, b) => (b.change[p] ?? -Infinity) - (a.change[p] ?? -Infinity));
+  const sorted = [...crypto.coins].sort((a, b) => (b.change[p] ?? -Infinity) - (a.change[p] ?? -Infinity));
   rowsEl.innerHTML = sorted.map((c) => {
     const img = safeImg(c.image);
     return `<tr>
@@ -174,29 +178,39 @@ function renderTable() {
       <td class="num">R$ ${big(c.marketCap)}</td></tr>`;
   }).join('');
 }
+
+function selectCoin(id) {
+  crypto.selected = id; cryptoChart.setSelected(id);
+  const c = crypto.coins.find((x) => x.id === id);
+  if (!c) { cryptoDetail.hidden = true; return; }
+  const img = safeImg(c.image);
+  cryptoDetail.innerHTML = `
+    <button class="close" aria-label="Fechar detalhes">×</button>
+    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(c.name)}</h3><small>${esc(c.symbol)}${c.tag ? ' · ' + esc(c.tag) : ''}</small></div></header>
+    <div class="price">${brl(c.price)}</div>
+    <dl>
+      ${['1h', '24h', '7d', '30d'].map((p) => `<dt>${p}</dt><dd class="${cls(c.change[p])}">${pct(c.change[p])}</dd>`).join('')}
+      <dt>Valor de mercado</dt><dd>R$ ${big(c.marketCap)}</dd>
+      <dt>Volume 24h</dt><dd>R$ ${big(c.volume)}</dd>
+    </dl>`;
+  cryptoDetail.hidden = false;
+  cryptoDetail.querySelector('.close').addEventListener('click', () => selectCoin(null));
+}
+
 rowsEl.addEventListener('click', (e) => {
   const id = e.target.closest('button')?.dataset.id;
-  if (id) { select(id); canvas.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }
+  if (id) { selectCoin(id); document.getElementById('stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }
 });
+bindGroup('period', (v) => { crypto.period = v; refreshCrypto(); if (crypto.selected) selectCoin(crypto.selected); });
+bindGroup('size', (v) => { crypto.sizeBy = v; refreshCrypto(); });
 
-function bindGroup(attr, key) {
-  document.querySelectorAll(`[data-${attr}]`).forEach((btn) => btn.addEventListener('click', () => {
-    state[key] = btn.dataset[attr];
-    document.querySelectorAll(`[data-${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-    retarget(); renderTable();
-    if (state.selected) select(state.selected);
-  }));
-}
-bindGroup('period', 'period');
-bindGroup('size', 'sizeBy');
-
-async function load() {
+async function loadCrypto() {
   try {
     const res = await fetch('/api/coins');
     if (!res.ok) throw new Error();
     const data = await res.json();
-    state.coins = data.coins;
-    if (!state.coins.length) {
+    crypto.coins = data.coins;
+    if (!crypto.coins.length) {
       statusEl.className = 'status warn';
       statusEl.textContent = 'Nenhuma moeda retornada. Confira os IDs em coins.json.';
     } else {
@@ -204,17 +218,72 @@ async function load() {
       statusEl.className = data.stale ? 'status warn' : 'status';
       statusEl.textContent = data.stale ? `Fonte fora do ar; mostrando dados das ${hora}.` : `Atualizado às ${hora}. Atualiza a cada minuto.`;
     }
-    retarget(); renderTable();
-    if (state.selected) select(state.selected);
+    refreshCrypto();
+    if (crypto.selected) selectCoin(crypto.selected);
   } catch {
     statusEl.className = 'status warn';
     statusEl.textContent = 'Não foi possível carregar os dados. Tentando de novo em 30 segundos.';
-    setTimeout(load, 30000);
+    setTimeout(loadCrypto, 30000);
     return;
   }
-  setTimeout(load, 60000);
+  setTimeout(loadCrypto, 60000);
 }
 
-resize();
-requestAnimationFrame(frame);
-load();
+/* ---------- ações da B3 ---------- */
+const stocks = { sizeBy: 'cap', list: [], selected: null };
+const stocksDetail = document.getElementById('detail-stocks');
+const stocksStatus = document.getElementById('stocks-status');
+const stocksChart = createChart(document.getElementById('stage-stocks'), { onSelect: (id) => selectStock(id) });
+
+function refreshStocks() {
+  stocksChart.update(
+    stocks.list.map((s) => ({ id: s.symbol, symbol: s.symbol, image: s.logo, change: s.changePercent, cap: s.marketCap })),
+    { sizeBy: stocks.sizeBy },
+  );
+  document.getElementById('stocks-sr').innerHTML = stocks.list
+    .map((s) => `<li>${s.rank}º ${esc(s.symbol)}, ${esc(s.name)}: ${brl(s.price)}, ${pct(s.changePercent)} no dia, valor de mercado R$ ${big(s.marketCap)}</li>`).join('');
+}
+
+function selectStock(id) {
+  stocks.selected = id; stocksChart.setSelected(id);
+  const s = stocks.list.find((x) => x.symbol === id);
+  if (!s) { stocksDetail.hidden = true; return; }
+  const img = safeImg(s.logo);
+  stocksDetail.innerHTML = `
+    <button class="close" aria-label="Fechar detalhes">×</button>
+    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(s.symbol)}</h3><small>${esc(s.name)}</small></div></header>
+    <div class="price">${brl(s.price)}</div>
+    <dl>
+      <dt>Hoje</dt><dd class="${cls(s.changePercent)}">${pct(s.changePercent)} (${s.change > 0 ? '+' : ''}${brl(s.change)})</dd>
+      <dt>Valor de mercado</dt><dd>R$ ${big(s.marketCap)}</dd>
+      <dt>Volume</dt><dd>R$ ${big(s.volume)}</dd>
+      <dt>Posição</dt><dd>${s.rank}º por valor de mercado</dd>
+    </dl>`;
+  stocksDetail.hidden = false;
+  stocksDetail.querySelector('.close').addEventListener('click', () => selectStock(null));
+}
+bindGroup('ssize', (v) => { stocks.sizeBy = v; refreshStocks(); });
+
+async function loadStocks() {
+  try {
+    const res = await fetch('/api/stocks');
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    stocks.list = d.stocks;
+    refreshStocks();
+    if (stocks.selected) selectStock(stocks.selected);
+    const hora = new Date(d.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const partes = [d.marketOpen ? 'Mercado aberto' : 'Mercado fechado', `atualizado às ${hora}`, 'cotações com atraso de cerca de 30 min'];
+    if (d.partial) partes.push(`mostrando ${d.stocks.length} de ${d.total} ações`);
+    stocksStatus.className = d.partial || d.stale ? 'status warn' : 'status';
+    stocksStatus.textContent = partes.join(' · ') + '.';
+    setTimeout(loadStocks, 300000);
+  } catch {
+    stocksStatus.className = 'status warn';
+    stocksStatus.textContent = 'Cotações indisponíveis no momento. Tentando de novo em 1 minuto.';
+    setTimeout(loadStocks, 60000);
+  }
+}
+
+loadCrypto();
+loadStocks();

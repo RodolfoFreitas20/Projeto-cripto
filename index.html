@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bolhas BR — criptomoedas brasileiras em bolhas</title>
-  <meta name="description" content="Veja o desempenho das criptomoedas nativas do Brasil em bolhas: quanto maior a bolha, maior a variação no período.">
+  <title>Bolhas BR — criptomoedas e ações brasileiras em bolhas</title>
+  <meta name="description" content="Veja o desempenho das criptomoedas nativas do Brasil e das 20 maiores ações da B3 em bolhas.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700&display=swap" rel="stylesheet">
@@ -14,41 +14,65 @@
   <header class="top">
     <div class="brand">
       <h1>Bolhas BR</h1>
-      <p>Criptomoedas brasileiras. Cada bolha é uma moeda; o tamanho mostra o quanto ela se moveu.</p>
-    </div>
-    <div class="controls">
-      <div class="group" role="group" aria-label="Período">
-        <button data-period="1h" aria-pressed="false">1h</button>
-        <button data-period="24h" aria-pressed="true">24h</button>
-        <button data-period="7d" aria-pressed="false">7d</button>
-        <button data-period="30d" aria-pressed="false">30d</button>
-      </div>
-      <div class="group" role="group" aria-label="Tamanho da bolha">
-        <button data-size="change" aria-pressed="true">Variação</button>
-        <button data-size="cap" aria-pressed="false">Valor de mercado</button>
-      </div>
+      <p>Cada bolha é um ativo brasileiro; o tamanho mostra o quanto ele se moveu ou quanto ele vale.</p>
+      <nav class="nav"><a href="#criptos">Criptomoedas</a><a href="#acoes">Ações da B3</a></nav>
     </div>
   </header>
 
   <main>
-    <section class="stage-wrap">
-      <canvas id="stage" role="img" aria-label="Bolhas das criptomoedas brasileiras. A lista abaixo traz os mesmos dados em texto."></canvas>
-      <aside id="detail" class="detail" aria-live="polite" hidden></aside>
-    </section>
-    <p id="status" class="status" role="status">Carregando moedas…</p>
-
-    <section class="list">
-      <h2>Todas as moedas</h2>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th>Moeda</th><th class="num">Preço</th><th class="num" id="th-change">Variação 24h</th><th class="num">Valor de mercado</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
+    <section id="criptos">
+      <div class="sec-head">
+        <h2>Criptomoedas</h2>
+        <div class="controls">
+          <div class="group" role="group" aria-label="Período">
+            <button data-period="1h" aria-pressed="false">1h</button>
+            <button data-period="24h" aria-pressed="true">24h</button>
+            <button data-period="7d" aria-pressed="false">7d</button>
+            <button data-period="30d" aria-pressed="false">30d</button>
+          </div>
+          <div class="group" role="group" aria-label="Tamanho da bolha">
+            <button data-size="change" aria-pressed="true">Variação</button>
+            <button data-size="cap" aria-pressed="false">Valor de mercado</button>
+          </div>
+        </div>
       </div>
+      <div class="stage-wrap">
+        <canvas id="stage" role="img" aria-label="Bolhas das criptomoedas brasileiras. A lista abaixo traz os mesmos dados em texto."></canvas>
+        <aside id="detail" class="detail" aria-live="polite" hidden></aside>
+      </div>
+      <p id="status" class="status" role="status">Carregando moedas…</p>
+
+      <div class="list">
+        <h3>Todas as moedas</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Moeda</th><th class="num">Preço</th><th class="num" id="th-change">Variação 24h</th><th class="num">Valor de mercado</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="acoes">
+      <div class="sec-head">
+        <h2>20 maiores ações da B3</h2>
+        <div class="controls">
+          <div class="group" role="group" aria-label="Tamanho da bolha (ações)">
+            <button data-ssize="cap" aria-pressed="true">Valor de mercado</button>
+            <button data-ssize="change" aria-pressed="false">Variação no dia</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage-wrap tall">
+        <canvas id="stage-stocks" role="img" aria-label="Bolhas das 20 maiores ações da B3. O resumo em texto está logo abaixo, para leitores de tela."></canvas>
+        <aside id="detail-stocks" class="detail" aria-live="polite" hidden></aside>
+      </div>
+      <p id="stocks-status" class="status" role="status">Carregando ações…</p>
+      <ul id="stocks-sr" class="sr-only"></ul>
     </section>
   </main>
 
-  <footer>Dados do CoinGecko, em reais. Informativo; não é recomendação de investimento.</footer>
+  <footer>Criptomoedas: CoinGecko e GeckoTerminal. Ações: brapi.dev, com atraso de cerca de 30 minutos. Valores em reais. Informativo; não é recomendação de investimento.</footer>
   <script src="/app.js" defer></script>
 </body>
 </html>
