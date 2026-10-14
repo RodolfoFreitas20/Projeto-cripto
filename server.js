@@ -59,6 +59,9 @@ app.get('/api/stocks', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(dir, 'public'), { maxAge: '1h' }));
+app.use(express.static(dir, { maxAge: '1h' }));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(dir, 'index.html'));
+});
 
 app.listen(PORT, () => console.log(`Bolhas BR rodando na porta ${PORT}`));
