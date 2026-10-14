@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bolhas BR</title>
+  <style>
+    body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;line-height:1.4;padding:2rem;color:#0b1220}
+    a{color:#0366d6}
+    .card{max-width:780px;margin:1.6rem auto;padding:1.2rem;border-radius:8px;border:1px solid #e6edf3;background:#fbfdff}
+    footer{margin-top:1.6rem;color:#6b7280;font-size:0.9rem}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Bolhas BR</h1>
+    <p>O servidor está rodando — este repositório não contém o frontend compilado em <code>public/</code>. Criei esta página temporária para evitar o erro <strong>Cannot GET /</strong>.</p>
+
+    <p>URLs úteis:</p>
+    <ul>
+      <li><a href="/healthz">/healthz</a> — healthcheck (retorna <code>ok</code>).</li>
+      <li><a href="/api/coins">/api/coins</a> — dados das criptomoedas (JSON).</li>
+      <li><a href="/api/stocks">/api/stocks</a> — cotações das ações (JSON).</li>
+    </ul>
+
+    <h2>O que aconteceu</h2>
+    <p>O Express serve arquivos estáticos a partir da pasta <code>public/</code>, mas essa pasta (ou um <code>index.html</code> nela) não existe no repositório. Quando não há rota para <code>/</code> e nenhum arquivo estático é encontrado, o servidor responde com <code>Cannot GET /</code>.</p>
+
+    <h2>Como corrigir</h2>
+    <ol>
+      <li>Coloque o frontend compilado dentro de <code>public/</code> (por exemplo, copie os arquivos gerados pelo seu bundler ou framework para <code>public/</code>).</li>
+      <li>Ou, enquanto desenvolve, mantenha uma <code>public/index.html</code> como esta ou crie uma rota em <code>server.js</code> que sirva o arquivo HTML desejado.</li>
+    </ol>
+
+    <p>Se quiser, eu posso:</p>
+    <ul>
+      <li>Adicionar um index.html provisório (já adicionado).</li>
+      <li>Gerar um template básico de frontend (HTML/CSS/JS) e adicionar em <code>public/</code>.</li>
+      <li>Alterar o servidor para servir um HTML a partir de uma rota (por exemplo, <code>app.get('/', ...)</code>).</li>
+    </ul>
+
+    <footer>— Arquivo criado automaticamente por Copilot para evitar o erro. Substitua por seu frontend.</footer>
+  </main>
+</body>
+</html>
