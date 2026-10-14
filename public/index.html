@@ -7,36 +7,38 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <h1>Bolhas BR</h1>
-    <p class="tagline">Desempenho de criptomoedas brasileiras e as 20 maiores ações da B3</p>
-  </header>
+  <div class="container">
+    <header class="header">
+      <h1>Bolhas BR</h1>
+      <p>Criptomoedas brasileiras e ações da B3</p>
+    </header>
 
-  <nav class="tabs" role="tablist">
-    <button id="tab-coins" role="tab" aria-controls="panel-coins" aria-selected="true">Criptomoedas</button>
-    <button id="tab-stocks" role="tab" aria-controls="panel-stocks" aria-selected="false">20 Ações B3</button>
-  </nav>
+    <nav class="tabs" role="tablist" aria-label="Seções do painel">
+      <button id="tab-coins" class="tab active" role="tab" aria-selected="true" aria-controls="panel-coins">Criptomoedas</button>
+      <button id="tab-stocks" class="tab" role="tab" aria-selected="false" aria-controls="panel-stocks">20 Ações B3</button>
+    </nav>
 
-  <main>
-    <section id="panel-coins" role="tabpanel">
-      <div class="controls">
-        <label>Tamanho das bolhas: <select id="size-mode"><option value="market_cap">Valor de mercado</option><option value="change">Variação (absoluta)</option></select></label>
-        <button id="refresh-coins">Atualizar</button>
-      </div>
-      <div id="coins-container" class="bubbles-grid" aria-live="polite">Carregando...</div>
-    </section>
+    <main class="content">
+      <section id="panel-coins" role="tabpanel" aria-label="Criptomoedas">
+        <div class="toolbar">
+          <label for="size-mode">Tamanho:</label>
+          <select id="size-mode">
+            <option value="market_cap">Valor de mercado</option>
+            <option value="change">Variação</option>
+          </select>
+          <button id="refresh-coins" type="button">Atualizar</button>
+        </div>
+        <div id="coins-container" class="bubble-panel" aria-live="polite">Carregando...</div>
+      </section>
 
-    <section id="panel-stocks" role="tabpanel" hidden>
-      <div class="controls">
-        <button id="refresh-stocks">Atualizar</button>
-      </div>
-      <div id="stocks-container">Carregando...</div>
-    </section>
-  </main>
-
-  <footer>
-    <small>Serviço: <a href="/healthz">/healthz</a> · APIs: <a href="/api/coins">/api/coins</a> · <a href="/api/stocks">/api/stocks</a></small>
-  </footer>
+      <section id="panel-stocks" role="tabpanel" aria-label="Ações" hidden>
+        <div class="toolbar">
+          <button id="refresh-stocks" type="button">Atualizar</button>
+        </div>
+        <div id="stocks-container" class="table-wrap">Carregando...</div>
+      </section>
+    </main>
+  </div>
 
   <script src="/app.js"></script>
 </body>

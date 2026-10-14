@@ -9,25 +9,27 @@ function fmtNumber(n){
 }
 
 function renderCoins(items){
-  if(!Array.isArray(items) || items.length===0){
+  if(!Array.isArray(items) || items.length === 0){
     coinsContainer.innerHTML = '<div class="legend">Nenhuma moeda encontrada.</div>';
     return;
   }
 
   const mode = sizeModeSelect.value;
-  const values = items.map(it => {
-    const marketCap = Number(it.market_cap ?? 0) || 0;
-    const change = Math.abs(Number(it.price_change_percentage_24h ?? it.price_change_24h ?? 0) || 0);
-    return mode === 'market_cap' ? marketCap : change;
-  }).filter(v => v > 0);
+  const values = items
+    .map(it => {
+      const marketCap = Number(it.market_cap ?? 0) || 0;
+      const change = Math.abs(Number(it.price_change_percentage_24h ?? it.price_change_24h ?? 0) || 0);
+      return mode === 'market_cap' ? marketCap : change;
+    })
+    .filter(v => v > 0);
 
   const min = Math.min(...values) || 0;
   const max = Math.max(...values) || 1;
 
   const scale = v => {
-    if(v <= 0) return 36;
+    if(v <= 0) return 38;
     const ratio = (Math.sqrt(v) - Math.sqrt(min)) / (Math.sqrt(max) - Math.sqrt(min) || 1);
-    return Math.round(32 + ratio * 88);
+    return Math.round(36 + ratio * 84);
   };
 
   coinsContainer.innerHTML = '';
@@ -47,14 +49,20 @@ function renderCoins(items){
 
     const label = document.createElement('div');
     label.className = 'label';
-    label.innerHTML = `<div style="font-size:.76rem;opacity:.95">${(it.symbol || it.id || '').toUpperCase()}</div><div style="font-size:.68rem;opacity:.95">${fmtNumber(price)}</div>`;
+    label.innerHTML = `<div>${(it.symbol || it.id || '').toUpperCase()}</div><div>${fmtNumber(price)}</div>`;
     el.appendChild(label);
     coinsContainer.appendChild(el);
   });
 }
 
 function renderStocks(items){
-  const rows = Array.isArray(items) ? items : (items && Array.isArray(items.data) ? items.data : (items && Array.isArray(items.results) ? items.results : []));
+  const rows = Array.isArray(items)
+    ? items
+    : (items && Array.isArray(items.data)
+        ? items.data
+        : (items && Array.isArray(items.results)
+            ? items.results
+            : []));
 
   if(rows.length === 0){
     stocksContainer.innerHTML = '<div class="legend">Nenhuma ação encontrada.</div>';
@@ -120,6 +128,8 @@ async function loadStocks(){
 }
 
 $('#tab-coins').addEventListener('click', () => {
+  $('#tab-coins').classList.add('active');
+  $('#tab-stocks').classList.remove('active');
   $('#tab-coins').setAttribute('aria-selected', 'true');
   $('#tab-stocks').setAttribute('aria-selected', 'false');
   $('#panel-coins').hidden = false;
@@ -127,6 +137,8 @@ $('#tab-coins').addEventListener('click', () => {
 });
 
 $('#tab-stocks').addEventListener('click', () => {
+  $('#tab-stocks').classList.add('active');
+  $('#tab-coins').classList.remove('active');
   $('#tab-stocks').setAttribute('aria-selected', 'true');
   $('#tab-coins').setAttribute('aria-selected', 'false');
   $('#panel-stocks').hidden = false;
