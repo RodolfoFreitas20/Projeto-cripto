@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMarkets } from './markets.js';
+import { createStocks } from './stocks.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -16,13 +17,22 @@ const { getMarkets } = createMarkets({
   ttlMs: Number(process.env.CACHE_TTL_SECONDS || 60) * 1000,
 });
 
+const tickers = JSON.parse(await readFile(path.join(dir, 'stocks.json'), 'utf8'));
+const { getStocks } = createStocks({
+  tickers,
+  apiUrl: process.env.BRAPI_API_URL || 'https://brapi.dev/api/v2',
+  token: process.env.BRAPI_TOKEN,
+  openTtlMs: Number(process.env.STOCKS_OPEN_TTL_SECONDS || 1800) * 1000, // plano gratuito tem ~30 min de atraso
+  closedTtlMs: Number(process.env.STOCKS_CLOSED_TTL_SECONDS || 21600) * 1000,
+});
+
 const app = express();
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
   res.set({
     'Content-Security-Policy':
-      "default-src 'self'; img-src 'self' data: https://coin-images.coingecko.com https://assets.coingecko.com https://assets.geckoterminal.com; " +
+      "default-src 'self'; img-src 'self' data: https://coin-images.coingecko.com https://assets.coingecko.com https://assets.geckoterminal.com https://icons.brapi.dev; " +
       "style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; frame-ancestors 'none'",
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -41,6 +51,14 @@ app.get('/api/coins', async (req, res) => {
   }
 });
 
-app.use(express.static(dir, { maxAge: '1h', index: 'index.html' }));
+app.get('/api/stocks', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=60').json(await getStocks());
+  } catch {
+    res.status(503).json({ error: 'Cotações indisponíveis no momento.' });
+  }
+});
+
+app.use(express.static(path.join(dir, 'public'), { maxAge: '1h' }));
 
 app.listen(PORT, () => console.log(`Bolhas BR rodando na porta ${PORT}`));

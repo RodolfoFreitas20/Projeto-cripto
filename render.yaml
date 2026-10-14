@@ -11,3 +11,5 @@ services:
         value: 20
       - key: COINGECKO_API_KEY
         sync: false # o Render pergunta o valor ao criar; opcional
+      - key: BRAPI_TOKEN
+        sync: false # token gratuito de brapi.dev; necessário para as 20 ações
