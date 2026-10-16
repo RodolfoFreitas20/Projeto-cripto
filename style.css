@@ -61,3 +61,12 @@ main section { margin-top: 12px; scroll-margin-top: 12px; }
 .list h3 { font-size: 18px; margin: 28px 0 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; list-style: none; }
 .stage-wrap canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; }
+
+.detail { max-height: 80%; overflow-y: auto; }
+.broker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.broker .btn { background: var(--up); color: #05231a; font-weight: 700; text-decoration: none; padding: 8px 14px; border-radius: 10px; font-size: 14px; }
+.broker .btn:hover { filter: brightness(1.1); }
+.broker small { flex-basis: 100%; font-size: 12px; line-height: 1.35; }
+
+.detail h3 a { color: inherit; text-decoration: underline; text-decoration-color: var(--up); text-underline-offset: 3px; }
+.detail h3 a:hover { color: var(--up); }

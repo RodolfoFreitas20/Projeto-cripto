@@ -24,6 +24,26 @@ function bindGroup(attr, cb) {
   }));
 }
 
+/* ---------- links de corretoras (links.json) ---------- */
+let LINKS = { padrao: { cripto: [], acoes: [] }, ativos: {} };
+fetch('/api/links').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) LINKS = d; }).catch(() => {});
+
+const linksFor = (symbol, kind) => LINKS.ativos[String(symbol).toUpperCase()] ?? LINKS.padrao[kind] ?? [];
+
+// Nome do ativo clicável quando há link de indicação (usa o primeiro da lista)
+function nameHtml(text, symbol, kind) {
+  const l = linksFor(symbol, kind)[0];
+  return l ? `<a class="name-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer sponsored">${esc(text)} ↗</a>` : esc(text);
+}
+
+function linksHtml(symbol, kind) {
+  const list = linksFor(symbol, kind);
+  if (!list.length) return '';
+  return `<div class="broker">
+    ${list.map((l) => `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer sponsored">${esc(l.nome)} ↗</a>`).join('')}
+    <small>Links de indicação: o site pode receber uma comissão se você abrir conta ou negociar.</small></div>`;
+}
+
 /* ---------- motor de bolhas (usado por criptomoedas e ações) ---------- */
 // item: { id, symbol, image, change (%), cap }
 function createChart(canvas, { onSelect }) {
@@ -186,13 +206,13 @@ function selectCoin(id) {
   const img = safeImg(c.image);
   cryptoDetail.innerHTML = `
     <button class="close" aria-label="Fechar detalhes">×</button>
-    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(c.name)}</h3><small>${esc(c.symbol)}${c.tag ? ' · ' + esc(c.tag) : ''}</small></div></header>
+    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${nameHtml(c.name, c.symbol, 'cripto')}</h3><small>${esc(c.symbol)}${c.tag ? ' · ' + esc(c.tag) : ''}</small></div></header>
     <div class="price">${brl(c.price)}</div>
     <dl>
       ${['1h', '24h', '7d', '30d'].map((p) => `<dt>${p}</dt><dd class="${cls(c.change[p])}">${pct(c.change[p])}</dd>`).join('')}
       <dt>Valor de mercado</dt><dd>R$ ${big(c.marketCap)}</dd>
       <dt>Volume 24h</dt><dd>R$ ${big(c.volume)}</dd>
-    </dl>`;
+    </dl>${linksHtml(c.symbol, 'cripto')}`;
   cryptoDetail.hidden = false;
   cryptoDetail.querySelector('.close').addEventListener('click', () => selectCoin(null));
 }
@@ -251,14 +271,14 @@ function selectStock(id) {
   const img = safeImg(s.logo);
   stocksDetail.innerHTML = `
     <button class="close" aria-label="Fechar detalhes">×</button>
-    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(s.symbol)}</h3><small>${esc(s.name)}</small></div></header>
+    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${nameHtml(s.symbol, s.symbol, 'acoes')}</h3><small>${esc(s.name)}</small></div></header>
     <div class="price">${brl(s.price)}</div>
     <dl>
       <dt>Hoje</dt><dd class="${cls(s.changePercent)}">${pct(s.changePercent)} (${s.change > 0 ? '+' : ''}${brl(s.change)})</dd>
       <dt>Valor de mercado</dt><dd>R$ ${big(s.marketCap)}</dd>
       <dt>Volume</dt><dd>R$ ${big(s.volume)}</dd>
       <dt>Posição</dt><dd>${s.rank}º por valor de mercado</dd>
-    </dl>`;
+    </dl>${linksHtml(s.symbol, 'acoes')}`;
   stocksDetail.hidden = false;
   stocksDetail.querySelector('.close').addEventListener('click', () => selectStock(null));
 }
