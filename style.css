@@ -70,3 +70,7 @@ main section { margin-top: 12px; scroll-margin-top: 12px; }
 
 .detail h3 a { color: inherit; text-decoration: underline; text-decoration-color: var(--up); text-underline-offset: 3px; }
 .detail h3 a:hover { color: var(--up); }
+
+.head-link { display: flex; align-items: center; gap: 10px; flex: 1; color: inherit; text-decoration: none; padding-right: 26px; }
+.head-link:hover h3, .head-link:focus-visible h3 { color: var(--up); text-decoration: underline; text-underline-offset: 3px; }
+.head-link .ext { color: var(--up); margin-left: auto; }

@@ -30,10 +30,13 @@ fetch('/api/links').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) L
 
 const linksFor = (symbol, kind) => LINKS.ativos[String(symbol).toUpperCase()] ?? LINKS.padrao[kind] ?? [];
 
-// Nome do ativo clicável quando há link de indicação (usa o primeiro da lista)
-function nameHtml(text, symbol, kind) {
+// Cabeçalho do painel (logo + nome + subtítulo) clicável quando há link de indicação (usa o primeiro da lista)
+function headHtml(img, title, sub, symbol, kind) {
+  const inner = `${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${esc(title)}</h3><small>${esc(sub)}</small></div>`;
   const l = linksFor(symbol, kind)[0];
-  return l ? `<a class="name-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer sponsored">${esc(text)} ↗</a>` : esc(text);
+  return l
+    ? `<header><a class="head-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer sponsored">${inner}<span class="ext" aria-hidden="true">↗</span></a></header>`
+    : `<header>${inner}</header>`;
 }
 
 function linksHtml(symbol, kind) {
@@ -206,7 +209,7 @@ function selectCoin(id) {
   const img = safeImg(c.image);
   cryptoDetail.innerHTML = `
     <button class="close" aria-label="Fechar detalhes">×</button>
-    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${nameHtml(c.name, c.symbol, 'cripto')}</h3><small>${esc(c.symbol)}${c.tag ? ' · ' + esc(c.tag) : ''}</small></div></header>
+    ${headHtml(img, c.name, c.symbol + (c.tag ? ' · ' + c.tag : ''), c.symbol, 'cripto')}
     <div class="price">${brl(c.price)}</div>
     <dl>
       ${['1h', '24h', '7d', '30d'].map((p) => `<dt>${p}</dt><dd class="${cls(c.change[p])}">${pct(c.change[p])}</dd>`).join('')}
@@ -271,7 +274,7 @@ function selectStock(id) {
   const img = safeImg(s.logo);
   stocksDetail.innerHTML = `
     <button class="close" aria-label="Fechar detalhes">×</button>
-    <header>${img ? `<img src="${esc(img)}" alt="">` : ''}<div><h3>${nameHtml(s.symbol, s.symbol, 'acoes')}</h3><small>${esc(s.name)}</small></div></header>
+    ${headHtml(img, s.symbol, s.name, s.symbol, 'acoes')}
     <div class="price">${brl(s.price)}</div>
     <dl>
       <dt>Hoje</dt><dd class="${cls(s.changePercent)}">${pct(s.changePercent)} (${s.change > 0 ? '+' : ''}${brl(s.change)})</dd>
