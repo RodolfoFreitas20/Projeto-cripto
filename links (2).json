@@ -1,0 +1,12 @@
+{
+  "_ajuda": "Preencha com os seus links de indicação (somente https). 'padrao' vale para todos os ativos da categoria; 'ativos' sobrescreve o padrão para um símbolo específico (ex.: VKX, BRZ, PETR4). Listas vazias não mostram nada.",
+  "padrao": {
+    "cripto": [],
+    "acoes": []
+  },
+  "ativos": {
+    "BRZ": [{ "nome": "Brasil Bitcoin", "url": "https://brasilbitcoin.com.br/registro/1417780" }],
+    "RLS": [{ "nome": "Brasil Bitcoin", "url": "https://brasilbitcoin.com.br/registro/1417780" }],
+    "HTR": [{ "nome": "Brasil Bitcoin", "url": "https://brasilbitcoin.com.br/registro/1417780" }]
+  }
+}
