@@ -6,7 +6,7 @@ const pct = (n) => n == null ? '—' : `${n > 0 ? '+' : ''}${n.toFixed(2).replac
 const big = (n) => n == null ? '—' : new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 const cls = (n) => (n ?? 0) >= 0 ? 'up' : 'down';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const safeImg = (u) => /^https:\/\/((coin-images|assets)\.(coingecko|geckoterminal)\.com|icons\.brapi\.dev)\//.test(u || '') ? u : '';
+const safeImg = (u) => /^(https:\/\/((coin-images|assets)\.(coingecko|geckoterminal)\.com|icons\.brapi\.dev)\/|\/[\w.\-/]+\.(png|jpe?g|svg|webp)$)/i.test(u || '') && !String(u).includes('..') ? u : '';
 
 function logo(url) {
   const u = safeImg(url);
@@ -25,8 +25,32 @@ function bindGroup(attr, cb) {
 }
 
 /* ---------- links de corretoras (links.json) ---------- */
-let LINKS = { padrao: { cripto: [], acoes: [] }, ativos: {} };
-fetch('/api/links').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) LINKS = d; }).catch(() => {});
+let LINKS = { padrao: { cripto: [], acoes: [] }, ativos: {}, patrocinados: [] };
+fetch('/api/links').then((r) => (r.ok ? r.json() : null)).then((d) => {
+  if (!d) return;
+  LINKS = { patrocinados: [], ...d };
+  renderSponsorLines();
+  if (crypto.coins.length) refreshCrypto();
+  if (stocks.list.length) refreshStocks();
+}).catch(() => {});
+
+// Bolhas patrocinadas: clicar abre o link de indicação em outra aba
+const sponsorsFor = (kind) => LINKS.patrocinados.map((p, i) => ({ p, i })).filter(({ p }) => p.secao === kind || p.secao === 'ambas');
+const sponsorItems = (kind) => sponsorsFor(kind).map(({ p, i }) => ({ id: `ad:${i}`, symbol: p.nome, image: p.logo, change: null, cap: null, sponsored: true }));
+function openSponsor(id) {
+  const p = LINKS.patrocinados[Number(String(id).slice(3))];
+  if (p) window.open(p.url, '_blank', 'noopener,noreferrer');
+}
+function renderSponsorLines() {
+  for (const kind of ['cripto', 'acoes']) {
+    const el = document.getElementById(`sponsor-${kind}`);
+    const list = sponsorsFor(kind);
+    el.hidden = !list.length;
+    el.innerHTML = list.length
+      ? 'Patrocinado: ' + list.map(({ p }) => `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer sponsored">${esc(p.nome)} ↗</a>`).join(' · ') + '. Link de indicação: o site pode receber uma comissão.'
+      : '';
+  }
+}
 
 const linksFor = (symbol, kind) => LINKS.ativos[String(symbol).toUpperCase()] ?? LINKS.padrao[kind] ?? [];
 
@@ -54,9 +78,10 @@ function createChart(canvas, { onSelect }) {
   const bubbles = new Map();
   let W = 0, H = 0, items = [], sizeBy = 'change', selected = null, visible = true, last = performance.now();
 
-  const weight = (it) => sizeBy === 'cap'
-    ? Math.sqrt(Math.sqrt(it.cap || 1)) // suaviza diferenças enormes
-    : Math.sqrt(Math.max(Math.abs(it.change ?? 0), 0.4));
+  const weight = (it) => it.sponsored ? 0
+    : sizeBy === 'cap'
+      ? Math.sqrt(Math.sqrt(it.cap || 1)) // suaviza diferenças enormes
+      : Math.sqrt(Math.max(Math.abs(it.change ?? 0), 0.4));
 
   function retarget() {
     if (!W || !H) return;
@@ -64,7 +89,8 @@ function createChart(canvas, { onSelect }) {
     const ws = items.map(weight);
     const sum = ws.reduce((s, w) => s + w * w, 0) || 1;
     const k = Math.sqrt((0.38 * W * H) / (Math.PI * sum));
-    let radii = ws.map((w) => Math.min(Math.max(w * k, minR), maxR));
+    const adR = Math.max(36, Math.min(W, H) * 0.085);
+    let radii = ws.map((w, i) => items[i].sponsored ? adR : Math.min(Math.max(w * k, minR), maxR));
     const area = radii.reduce((s, r) => s + Math.PI * r * r, 0), limit = 0.6 * W * H;
     if (area > limit) { const f = Math.sqrt(limit / area); radii = radii.map((r) => Math.max(r * f, 16)); } // telas pequenas
     const ids = new Set();
@@ -125,10 +151,37 @@ function createChart(canvas, { onSelect }) {
 
   const font = (w, px) => `${w} ${px}px "Bricolage Grotesque", sans-serif`;
 
+  function drawSponsored(b, it) {
+    const g = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.1, b.x, b.y, b.r);
+    g.addColorStop(0, 'rgba(244,201,93,0.42)'); g.addColorStop(1, 'rgba(244,201,93,0.16)');
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
+    ctx.fillStyle = g; ctx.fill();
+    ctx.setLineDash([7, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(244,201,93,0.95)'; ctx.stroke(); ctx.setLineDash([]);
+    const im = logo(it.image);
+    ctx.fillStyle = '#e8f1ee';
+    if (im) {
+      const maxW = b.r * 1.3, maxH = b.r * 0.85, sc = Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight);
+      const w = im.naturalWidth * sc, h = im.naturalHeight * sc, pad = 5;
+      ctx.fillStyle = 'rgba(255,255,255,0.93)';
+      ctx.beginPath(); ctx.roundRect(b.x - w / 2 - pad, b.y - b.r * 0.2 - h / 2 - pad, w + pad * 2, h + pad * 2, 6); ctx.fill();
+      ctx.drawImage(im, b.x - w / 2, b.y - b.r * 0.2 - h / 2, w, h);
+    } else {
+      const lines = it.symbol.split(' ').slice(0, 2);
+      let px = Math.max(10, b.r * 0.28);
+      ctx.font = font(700, px);
+      while (Math.max(...lines.map((t) => ctx.measureText(t).width)) > b.r * 1.55 && px > 7) { px -= 0.5; ctx.font = font(700, px); }
+      lines.forEach((t, i) => ctx.fillText(t, b.x, b.y - b.r * 0.18 + (i - (lines.length - 1) / 2) * px * 1.1));
+    }
+    ctx.fillStyle = '#f4c95d';
+    ctx.font = font(400, Math.max(8, b.r * 0.19));
+    ctx.fillText('patrocinado', b.x, b.y + b.r * 0.62);
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     ctx.textAlign = 'center';
     for (const b of bubbles.values()) {
+      if (b.item.sponsored) { drawSponsored(b, b.item); continue; }
       const it = b.item, ch = it.change, isSel = selected === it.id;
       const rgb = (ch ?? 0) >= 0 ? '53,214,160' : '255,111,89', mag = Math.min(Math.abs(ch ?? 0) / 10, 1);
       const g = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.1, b.x, b.y, b.r);
@@ -186,7 +239,7 @@ const cryptoChart = createChart(document.getElementById('stage'), { onSelect: (i
 
 function refreshCrypto() {
   cryptoChart.update(
-    crypto.coins.map((c) => ({ id: c.id, symbol: c.symbol, image: c.image, change: c.change[crypto.period], cap: c.marketCap })),
+    [...crypto.coins.map((c) => ({ id: c.id, symbol: c.symbol, image: c.image, change: c.change[crypto.period], cap: c.marketCap })), ...sponsorItems('cripto')],
     { sizeBy: crypto.sizeBy },
   );
   const p = crypto.period;
@@ -203,6 +256,7 @@ function refreshCrypto() {
 }
 
 function selectCoin(id) {
+  if (String(id).startsWith('ad:')) { openSponsor(id); return; }
   crypto.selected = id; cryptoChart.setSelected(id);
   const c = crypto.coins.find((x) => x.id === id);
   if (!c) { cryptoDetail.hidden = true; return; }
@@ -260,7 +314,7 @@ const stocksChart = createChart(document.getElementById('stage-stocks'), { onSel
 
 function refreshStocks() {
   stocksChart.update(
-    stocks.list.map((s) => ({ id: s.symbol, symbol: s.symbol, image: s.logo, change: s.changePercent, cap: s.marketCap })),
+    [...stocks.list.map((s) => ({ id: s.symbol, symbol: s.symbol, image: s.logo, change: s.changePercent, cap: s.marketCap })), ...sponsorItems('acoes')],
     { sizeBy: stocks.sizeBy },
   );
   document.getElementById('stocks-sr').innerHTML = stocks.list
@@ -268,6 +322,7 @@ function refreshStocks() {
 }
 
 function selectStock(id) {
+  if (String(id).startsWith('ad:')) { openSponsor(id); return; }
   stocks.selected = id; stocksChart.setSelected(id);
   const s = stocks.list.find((x) => x.symbol === id);
   if (!s) { stocksDetail.hidden = true; return; }
