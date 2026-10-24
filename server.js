@@ -3,10 +3,17 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMarkets } from './markets.js';
-import { createStocks } from './stocks.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
+
+// Módulos opcionais (ações e links): se um arquivo faltar ou falhar, o site sobe mesmo assim, só sem esse recurso.
+async function optional(file) {
+  try { return await import(file); } catch (e) { console.warn(`[aviso] ${file} indisponível; recurso desativado:`, e.message); return null; }
+}
+async function optionalJson(file, fallback) {
+  try { return JSON.parse(await readFile(path.join(dir, file), 'utf8')); } catch (e) { console.warn(`[aviso] ${file} ausente ou inválido:`, e.message); return fallback; }
+}
 
 const coins = JSON.parse(await readFile(path.join(dir, 'coins.json'), 'utf8'));
 const { getMarkets } = createMarkets({
@@ -17,14 +24,34 @@ const { getMarkets } = createMarkets({
   ttlMs: Number(process.env.CACHE_TTL_SECONDS || 60) * 1000,
 });
 
-const tickers = JSON.parse(await readFile(path.join(dir, 'stocks.json'), 'utf8'));
-const { getStocks } = createStocks({
-  tickers,
-  apiUrl: process.env.BRAPI_API_URL || 'https://brapi.dev/api/v2',
-  token: process.env.BRAPI_TOKEN,
-  openTtlMs: Number(process.env.STOCKS_OPEN_TTL_SECONDS || 1800) * 1000, // plano gratuito tem ~30 min de atraso
-  closedTtlMs: Number(process.env.STOCKS_CLOSED_TTL_SECONDS || 21600) * 1000,
-});
+// Ações da B3
+let getStocks = null;
+try {
+  const mod = await optional('./stocks.js');
+  const tickers = await optionalJson('stocks.json', null);
+  if (mod && tickers) {
+    getStocks = mod.createStocks({
+      tickers,
+      apiUrl: process.env.BRAPI_API_URL || 'https://brapi.dev/api/v2',
+      token: process.env.BRAPI_TOKEN,
+      openTtlMs: Number(process.env.STOCKS_OPEN_TTL_SECONDS || 1800) * 1000, // plano gratuito tem ~30 min de atraso
+      closedTtlMs: Number(process.env.STOCKS_CLOSED_TTL_SECONDS || 21600) * 1000,
+    }).getStocks;
+  }
+} catch (e) {
+  console.warn('[aviso] ações desativadas:', e.message);
+}
+
+// Links de corretoras e bolhas patrocinadas
+const emptyLinks = { padrao: { cripto: [], acoes: [] }, ativos: {}, patrocinados: [] };
+let links = emptyLinks;
+try {
+  const mod = await optional('./links.js');
+  const raw = await optionalJson('links.json', null);
+  if (mod && raw) links = mod.sanitizeLinks(raw);
+} catch (e) {
+  console.warn('[aviso] links desativados:', e.message);
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -52,6 +79,7 @@ app.get('/api/coins', async (req, res) => {
 });
 
 app.get('/api/stocks', async (req, res) => {
+  if (!getStocks) return res.status(503).json({ error: 'Ações desativadas neste servidor.' });
   try {
     res.set('Cache-Control', 'public, max-age=60').json(await getStocks());
   } catch {
@@ -59,6 +87,8 @@ app.get('/api/stocks', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(dir, 'public'), { maxAge: '1h' }));
+app.get('/api/links', (req, res) => res.set('Cache-Control', 'public, max-age=300').json(links));
+
+app.use(express.static(path.join(dir, 'public'), { maxAge: '5m' }));
 
 app.listen(PORT, () => console.log(`Bolhas BR rodando na porta ${PORT}`));
